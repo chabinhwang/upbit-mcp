@@ -27,7 +27,7 @@
 {
   "upbit-docs": {
     "command": "uvx",
-    "args": ["--from", "git+https://github.com/chabinhwang/upbit-mcp@main", "upbit-mcp"]
+    "args": ["--from", "git+https://github.com/chabinhwang/upbit-mcp@latest", "upbit-mcp"]
   }
 }
 ```
@@ -39,7 +39,7 @@
 ```toml
 [mcp_servers.upbit-docs]
 command = "uvx"
-args = ["--from", "git+https://github.com/chabinhwang/upbit-mcp@main", "upbit-mcp"]
+args = ["--from", "git+https://github.com/chabinhwang/upbit-mcp@latest", "upbit-mcp"]
 ```
 
 ### Gemini CLI
@@ -52,7 +52,7 @@ args = ["--from", "git+https://github.com/chabinhwang/upbit-mcp@main", "upbit-mc
   "mcpServers": {
     "upbit-docs": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/chabinhwang/upbit-mcp@main", "upbit-mcp"]
+      "args": ["--from", "git+https://github.com/chabinhwang/upbit-mcp@latest", "upbit-mcp"]
     }
   }
 }
@@ -70,7 +70,7 @@ args = ["--from", "git+https://github.com/chabinhwang/upbit-mcp@main", "upbit-mc
   "mcpServers": {
     "upbit-docs": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/chabinhwang/upbit-mcp@main", "upbit-mcp"]
+      "args": ["--from", "git+https://github.com/chabinhwang/upbit-mcp@latest", "upbit-mcp"]
     }
   }
 }
@@ -85,7 +85,7 @@ args = ["--from", "git+https://github.com/chabinhwang/upbit-mcp@main", "upbit-mc
   "mcpServers": {
     "upbit-docs": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/chabinhwang/upbit-mcp@main", "upbit-mcp"]
+      "args": ["--from", "git+https://github.com/chabinhwang/upbit-mcp@latest", "upbit-mcp"]
     }
   }
 }
