@@ -3,7 +3,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 from .collector import (
     collect_all,
@@ -85,13 +85,13 @@ async def _init_chunks():
 
 
 @asynccontextmanager
-async def lifespan(server: FastMCP):
+async def lifespan(server: MCPServer):
     """서버 시작 시 문서를 로드한다."""
     await _init_chunks()
     yield
 
 
-mcp = FastMCP(
+mcp = MCPServer(
     "upbit-docs",
     instructions="업비트 개발자 센터 API 문서 검색 도구",
     lifespan=lifespan,
