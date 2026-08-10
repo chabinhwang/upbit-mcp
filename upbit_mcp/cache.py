@@ -1,9 +1,12 @@
-"""JSON 캐시 + SHA256 해시 변경 감지"""
+"""원자적 JSON 캐시 + SHA256 해시 변경 감지."""
 
 import hashlib
 import json
 import logging
+import os
+import tempfile
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -11,10 +14,47 @@ CACHE_DIR = Path.home() / ".upbit-mcp-cache"
 CHUNKS_FILE = CACHE_DIR / "chunks.json"
 HASHES_FILE = CACHE_DIR / "hashes.json"
 ETAGS_FILE = CACHE_DIR / "etags.json"
+META_FILE = CACHE_DIR / "meta.json"
+
+CACHE_SCHEMA_VERSION = 2
+PARSER_VERSION = 2
 
 
 def _ensure_dir():
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _load_json(path: Path, default: Any) -> Any:
+    if not path.exists():
+        return default
+    try:
+        return json.loads(path.read_text("utf-8"))
+    except (OSError, json.JSONDecodeError, TypeError) as exc:
+        logger.warning("cache read failed, ignoring %s: %s", path, exc)
+        return default
+
+
+def _write_json(path: Path, data: Any) -> None:
+    """같은 디렉터리에 쓴 뒤 원자적으로 교체한다."""
+    _ensure_dir()
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=CACHE_DIR,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temp_file:
+            json.dump(data, temp_file, ensure_ascii=False, separators=(",", ":"))
+            temp_file.flush()
+            os.fsync(temp_file.fileno())
+            temp_path = Path(temp_file.name)
+        os.replace(temp_path, path)
+    finally:
+        if temp_path is not None and temp_path.exists():
+            temp_path.unlink(missing_ok=True)
 
 
 def compute_hash(text: str) -> str:
@@ -25,33 +65,30 @@ def compute_hash(text: str) -> str:
 def load_hashes() -> dict[str, str]:
     """저장된 해시를 로드한다."""
     _ensure_dir()
-    if HASHES_FILE.exists():
-        return json.loads(HASHES_FILE.read_text("utf-8"))
-    return {}
+    data = _load_json(HASHES_FILE, {})
+    return data if isinstance(data, dict) else {}
 
 
 def save_hashes(hashes: dict[str, str]):
-    """해시를 저장한다."""
-    _ensure_dir()
-    HASHES_FILE.write_text(json.dumps(hashes, ensure_ascii=False), "utf-8")
+    """해시를 원자적으로 저장한다."""
+    _write_json(HASHES_FILE, hashes)
 
 
 def load_chunks() -> list[dict] | None:
     """캐시된 청크를 로드한다. 없으면 None."""
     _ensure_dir()
-    if CHUNKS_FILE.exists():
-        data = json.loads(CHUNKS_FILE.read_text("utf-8"))
-        logger.info("캐시 로드: %d개 청크", len(data))
-        return data
-    return None
+    if not CHUNKS_FILE.exists():
+        return None
+    data = _load_json(CHUNKS_FILE, None)
+    if not isinstance(data, list):
+        return None
+    logger.info("캐시 로드: %d개 청크", len(data))
+    return data
 
 
 def save_chunks(chunks: list[dict]):
-    """청크를 캐시에 저장한다."""
-    _ensure_dir()
-    CHUNKS_FILE.write_text(
-        json.dumps(chunks, ensure_ascii=False, indent=None), "utf-8"
-    )
+    """청크를 원자적으로 저장한다."""
+    _write_json(CHUNKS_FILE, chunks)
     logger.info("캐시 저장: %d개 청크", len(chunks))
 
 
@@ -79,12 +116,31 @@ def update_hashes(raw_texts: dict[str, str]):
 def load_etags() -> dict[str, str]:
     """저장된 ETag를 로드한다."""
     _ensure_dir()
-    if ETAGS_FILE.exists():
-        return json.loads(ETAGS_FILE.read_text("utf-8"))
-    return {}
+    data = _load_json(ETAGS_FILE, {})
+    return data if isinstance(data, dict) else {}
 
 
 def save_etags(etags: dict[str, str]):
-    """ETag를 저장한다."""
+    """ETag를 원자적으로 저장한다."""
+    _write_json(ETAGS_FILE, etags)
+
+
+def load_cache_meta() -> dict[str, Any]:
+    """캐시 스키마/수집 상태를 로드한다."""
     _ensure_dir()
-    ETAGS_FILE.write_text(json.dumps(etags, ensure_ascii=False), "utf-8")
+    data = _load_json(META_FILE, {})
+    return data if isinstance(data, dict) else {}
+
+
+def save_cache_meta(meta: dict[str, Any]) -> None:
+    """캐시 스키마/수집 상태를 원자적으로 저장한다."""
+    _write_json(META_FILE, meta)
+
+
+def cache_is_current(meta: dict[str, Any]) -> bool:
+    """현재 코드로 완전하게 생성된 캐시인지 확인한다."""
+    return (
+        meta.get("schema_version") == CACHE_SCHEMA_VERSION
+        and meta.get("parser_version") == PARSER_VERSION
+        and meta.get("complete") is True
+    )

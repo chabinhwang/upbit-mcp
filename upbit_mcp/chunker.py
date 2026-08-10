@@ -1,7 +1,7 @@
 """마크다운 문서를 청크로 분리한다."""
 
-import re
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -115,11 +115,12 @@ def chunk_document(doc: dict) -> list[dict]:
     """단일 문서를 청크 리스트로 변환한다.
 
     doc: {source, url, title, content}
-    반환: [{source, url, header, content}]
+    반환: [{source, url, title, header, content}]
     """
     content = doc["content"]
     source = doc["source"]
     url = doc["url"]
+    title = doc.get("title", "")
 
     # 1차: H1 기준 분리
     h1_parts = _split_by_pattern(content, H1_PATTERN)
@@ -134,6 +135,7 @@ def chunk_document(doc: dict) -> list[dict]:
                 {
                     "source": source,
                     "url": url,
+                    "title": title,
                     "header": header,
                     "content": sp.strip(),
                 }
@@ -149,7 +151,7 @@ def chunk_all(collected: dict) -> list[dict]:
     반환: [{source, url, header, content}]
     """
     all_chunks = []
-    for source_key, data in collected.items():
+    for data in collected.values():
         for doc in data["documents"]:
             chunks = chunk_document(doc)
             all_chunks.extend(chunks)

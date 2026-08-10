@@ -32,7 +32,9 @@ def search(
     partial_matches = []
 
     for chunk in candidates:
-        searchable = (chunk["header"] + " " + chunk["content"]).lower()
+        searchable = (
+            chunk.get("title", "") + " " + chunk["header"] + " " + chunk["content"]
+        ).lower()
         matched = [kw for kw in keywords if kw in searchable]
         match_count = len(matched)
 
@@ -42,6 +44,7 @@ def search(
         entry = {
             "source": chunk["source"],
             "url": chunk["url"],
+            "title": chunk.get("title", ""),
             "header": chunk["header"],
             "content": chunk["content"],
             "match_count": match_count,
